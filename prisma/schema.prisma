@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum WorkflowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  WAITING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum StepStatus {
+  PENDING
+  RUNNING
+  WAITING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  workspaces  Workspace[]
+  memberships Membership[]
+  apiKeys     ApiKey[]
+  auditEvents AuditEvent[]
+  executions  Execution[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Workspace {
+  id          String       @id @default(cuid())
+  tenantId    String
+  name        String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workflows   Workflow[]
+  credentials Credential[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId, createdAt])
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  memberships Membership[]
+  apiKeys     ApiKey[]
+  auditEvents AuditEvent[]
+  createdAt   DateTime     @default(now())
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      Role
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, userId])
+  @@index([userId, tenantId])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  tenantId   String
+  userId     String
+  name       String
+  prefix     String    @unique
+  tokenHash  String    @unique
+  revokedAt  DateTime?
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId, revokedAt])
+}
+
+model Credential {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  connector   String
+  ciphertext  String
+  iv          String
+  tag         String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, connector])
+}
+
+model Workflow {
+  id                 String            @id @default(cuid())
+  workspaceId        String
+  name               String
+  status             WorkflowStatus    @default(DRAFT)
+  publishedVersionId String?            @unique
+  workspace          Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  draft              WorkflowDraft?
+  versions           WorkflowVersion[] @relation("WorkflowVersions")
+  publishedVersion   WorkflowVersion?  @relation("PublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
+  executions         Execution[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, status, updatedAt])
+}
+
+model WorkflowDraft {
+  id         String   @id @default(cuid())
+  workflowId String   @unique
+  revision   Int      @default(0)
+  graph      Json
+  checksum   String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  updatedAt  DateTime @updatedAt
+}
+
+model WorkflowVersion {
+  id         String      @id @default(cuid())
+  workflowId String
+  version    Int
+  graph      Json
+  checksum   String
+  workflow   Workflow    @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
+  published  Workflow?   @relation("PublishedVersion")
+  executions Execution[]
+  createdAt  DateTime    @default(now())
+
+  @@unique([workflowId, version])
+  @@unique([workflowId, checksum])
+}
+
+model Execution {
+  id                String          @id @default(cuid())
+  tenantId          String
+  workflowId        String
+  workflowVersionId String
+  idempotencyKey    String
+  status            ExecutionStatus @default(QUEUED)
+  payloadDocumentId String
+  availableAt       DateTime        @default(now())
+  attempts          Int             @default(0)
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workflow          Workflow        @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  workflowVersion   WorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
+  steps             StepRun[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([workflowId, idempotencyKey])
+  @@index([tenantId, status, availableAt])
+}
+
+model StepRun {
+  id          String     @id @default(cuid())
+  executionId String
+  nodeId      String
+  attempt     Int
+  status      StepStatus @default(PENDING)
+  availableAt DateTime   @default(now())
+  errorCode   String?
+  execution   Execution  @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([executionId, nodeId, attempt])
+  @@index([status, availableAt])
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  actorId   String?
+  action    String
+  target    String
+  targetId  String
+  metadata  Json
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
