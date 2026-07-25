@@ -10,9 +10,9 @@ Complete tasks in order unless a dependency is explicitly removed. Each day has 
 - [x] 4. Design auth, workspaces, RBAC, credential encryption, and audit logs; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 - [x] 5. Implement auth, workspaces, RBAC, credential encryption, and audit logs; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
 - [x] 6. Verify auth, workspaces, RBAC, credential encryption, and audit logs with tests, failure cases, telemetry, documentation, and a reviewable demo.
-- [ ] 7. Design visual canvas, typed nodes/edges, validation, autosave, and undo; write acceptance criteria, contracts, risks, and the smallest vertical slice.
-- [ ] 8. Implement visual canvas, typed nodes/edges, validation, autosave, and undo; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
-- [ ] 9. Verify visual canvas, typed nodes/edges, validation, autosave, and undo with tests, failure cases, telemetry, documentation, and a reviewable demo.
+- [x] 7. Design visual canvas, typed nodes/edges, validation, autosave, and undo; write acceptance criteria, contracts, risks, and the smallest vertical slice.
+- [x] 8. Implement visual canvas, typed nodes/edges, validation, autosave, and undo; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
+- [x] 9. Verify visual canvas, typed nodes/edges, validation, autosave, and undo with tests, failure cases, telemetry, documentation, and a reviewable demo.
 - [ ] 10. Design draft/version/publish lifecycle and GraphQL workflow query layer; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 
 ## Day 2 — Core workflows and integrations (Tasks 11–20)

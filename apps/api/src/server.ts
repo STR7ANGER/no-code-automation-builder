@@ -5,6 +5,8 @@ import { Metrics } from "./metrics.js";
 import { AesCredentialCipher } from "./modules/access/cipher.js";
 import { PrismaAccessRepository } from "./modules/access/prisma-repository.js";
 import { AccessService } from "./modules/access/service.js";
+import { PrismaWorkflowRepository } from "./modules/workflows/prisma-repository.js";
+import { WorkflowService } from "./modules/workflows/service.js";
 
 const environment = parseEnvironment(process.env);
 const metrics = new Metrics();
@@ -14,12 +16,14 @@ const access = new AccessService(
   environment.SESSION_PEPPER,
   metrics,
 );
+const workflows = new WorkflowService(new PrismaWorkflowRepository(), metrics);
 const server = serve({
   fetch: createApp({
     metrics,
     operatorToken: environment.OPERATOR_METRICS_TOKEN,
     access,
     bootstrapKey: environment.BOOTSTRAP_ADMIN_KEY,
+    workflows,
   }).fetch,
   port: environment.PORT,
 });

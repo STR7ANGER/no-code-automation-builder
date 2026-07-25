@@ -4,6 +4,8 @@ import { requestId } from "hono/request-id";
 import type { Metrics } from "./metrics.js";
 import { createAccessRoutes } from "./modules/access/routes.js";
 import type { AccessService } from "./modules/access/service.js";
+import { createWorkflowRoutes } from "./modules/workflows/routes.js";
+import type { WorkflowService } from "./modules/workflows/service.js";
 
 export const createApp = (
   options: {
@@ -11,6 +13,7 @@ export const createApp = (
     operatorToken?: string;
     access?: AccessService;
     bootstrapKey?: string;
+    workflows?: WorkflowService;
   } = {},
 ) => {
   const app = new Hono();
@@ -57,5 +60,10 @@ export const createApp = (
     });
   if (options.access && options.bootstrapKey)
     app.route("/v1", createAccessRoutes(options.access, options.bootstrapKey));
+  if (options.access && options.workflows)
+    app.route(
+      "/v1/workflows",
+      createWorkflowRoutes(options.workflows, options.access),
+    );
   return app;
 };
