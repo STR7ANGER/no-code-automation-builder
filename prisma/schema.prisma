@@ -39,6 +39,11 @@ enum StepStatus {
   CANCELLED
 }
 
+enum TriggerKind {
+  WEBHOOK
+  CRON
+}
+
 model Tenant {
   id          String       @id @default(cuid())
   name        String
@@ -48,6 +53,7 @@ model Tenant {
   apiKeys     ApiKey[]
   auditEvents AuditEvent[]
   executions  Execution[]
+  triggers    Trigger[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -59,6 +65,7 @@ model Workspace {
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   workflows   Workflow[]
   credentials Credential[]
+  triggers    Trigger[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -126,13 +133,14 @@ model Workflow {
   workspaceId        String
   name               String
   status             WorkflowStatus    @default(DRAFT)
-  publishedVersionId String?            @unique
+  publishedVersionId String?           @unique
   workspace          Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   draft              WorkflowDraft?
   versions           WorkflowVersion[] @relation("WorkflowVersions")
   publishedVersion   WorkflowVersion?  @relation("PublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
   executions         Execution[]
   publishRequests    PublishRequest[]
+  triggers           Trigger[]
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -151,16 +159,16 @@ model WorkflowDraft {
 }
 
 model WorkflowVersion {
-  id         String      @id @default(cuid())
-  workflowId String
-  version    Int
-  graph      Json
-  checksum   String
-  workflow   Workflow    @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
-  published  Workflow?   @relation("PublishedVersion")
-  executions Execution[]
+  id              String           @id @default(cuid())
+  workflowId      String
+  version         Int
+  graph           Json
+  checksum        String
+  workflow        Workflow         @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
+  published       Workflow?        @relation("PublishedVersion")
+  executions      Execution[]
   publishRequests PublishRequest[]
-  createdAt  DateTime    @default(now())
+  createdAt       DateTime         @default(now())
 
   @@unique([workflowId, version])
   @@unique([workflowId, checksum])
@@ -229,4 +237,51 @@ model AuditEvent {
   createdAt DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+model Trigger {
+  id               String            @id
+  tenantId         String
+  workspaceId      String
+  workflowId       String
+  kind             TriggerKind
+  schedule         String?
+  secretCiphertext String
+  secretIv         String
+  secretTag        String
+  nextFireAt       DateTime?
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workflow         Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  deliveries       TriggerDelivery[]
+  deadLetters      DeadLetter[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([kind, nextFireAt])
+  @@index([tenantId, workspaceId])
+}
+
+model TriggerDelivery {
+  id          String   @id @default(cuid())
+  triggerId   String
+  deliveryId  String
+  payloadHash String
+  executionId String?
+  trigger     Trigger  @relation(fields: [triggerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([triggerId, deliveryId])
+}
+
+model DeadLetter {
+  id          String   @id @default(cuid())
+  triggerId   String
+  deliveryId  String
+  payloadHash String
+  reason      String
+  trigger     Trigger  @relation(fields: [triggerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([triggerId, createdAt])
 }

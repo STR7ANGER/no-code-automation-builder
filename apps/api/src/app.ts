@@ -4,6 +4,8 @@ import { requestId } from "hono/request-id";
 import type { Metrics } from "./metrics.js";
 import { createAccessRoutes } from "./modules/access/routes.js";
 import type { AccessService } from "./modules/access/service.js";
+import { createTriggerRoutes } from "./modules/triggers/routes.js";
+import type { TriggerService } from "./modules/triggers/service.js";
 import { createGraphqlRoutes } from "./modules/workflows/graphql.js";
 import { createWorkflowRoutes } from "./modules/workflows/routes.js";
 import type { WorkflowService } from "./modules/workflows/service.js";
@@ -15,6 +17,7 @@ export const createApp = (
     access?: AccessService;
     bootstrapKey?: string;
     workflows?: WorkflowService;
+    triggers?: TriggerService;
   } = {},
 ) => {
   const app = new Hono();
@@ -66,6 +69,8 @@ export const createApp = (
       "/v1/workflows",
       createWorkflowRoutes(options.workflows, options.access),
     );
+  if (options.access && options.triggers)
+    app.route("/v1", createTriggerRoutes(options.triggers, options.access));
   if (options.access && options.workflows)
     app.route(
       "/v1/graphql",

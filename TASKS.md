@@ -22,9 +22,9 @@ Complete tasks in order unless a dependency is explicitly removed. Each day has 
 - [x] 13. Design Go state machine, queues, retries, delays, cancellation, and recovery; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 - [x] 14. Implement Go state machine, queues, retries, delays, cancellation, and recovery; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
 - [x] 15. Verify Go state machine, queues, retries, delays, cancellation, and recovery with tests, failure cases, telemetry, documentation, and a reviewable demo.
-- [ ] 16. Design webhook/cron triggers, idempotency, rate limits, and dead-letter queue; write acceptance criteria, contracts, risks, and the smallest vertical slice.
-- [ ] 17. Implement webhook/cron triggers, idempotency, rate limits, and dead-letter queue; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
-- [ ] 18. Verify webhook/cron triggers, idempotency, rate limits, and dead-letter queue with tests, failure cases, telemetry, documentation, and a reviewable demo.
+- [x] 16. Design webhook/cron triggers, idempotency, rate limits, and dead-letter queue; write acceptance criteria, contracts, risks, and the smallest vertical slice.
+- [x] 17. Implement webhook/cron triggers, idempotency, rate limits, and dead-letter queue; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
+- [x] 18. Verify webhook/cron triggers, idempotency, rate limits, and dead-letter queue with tests, failure cases, telemetry, documentation, and a reviewable demo.
 - [ ] 19. Design connector SDK plus HTTP, email, GitHub-style, and Slack-style demo connectors; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 - [ ] 20. Implement connector SDK plus HTTP, email, GitHub-style, and Slack-style demo connectors; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
 

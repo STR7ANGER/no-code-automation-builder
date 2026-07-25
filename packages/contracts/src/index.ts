@@ -82,6 +82,18 @@ export const workflowPublishInput = z.object({
   idempotencyKey: z.string().trim().min(8).max(120),
 });
 
+export const triggerCreateInput = z
+  .object({
+    workspaceId: z.string().cuid(),
+    workflowId: z.string().cuid(),
+    kind: z.enum(["WEBHOOK", "CRON"]),
+    schedule: z.enum(["EVERY_5_MINUTES", "HOURLY", "DAILY"]).optional(),
+  })
+  .refine((value) => value.kind !== "CRON" || value.schedule, {
+    message: "Cron triggers require a schedule.",
+    path: ["schedule"],
+  });
+
 export type WorkflowGraph = z.infer<typeof workflowGraph>;
 export type WorkflowNode = z.infer<typeof workflowNode>;
 export type WorkflowEdge = z.infer<typeof workflowEdge>;
