@@ -1,0 +1,98 @@
+scalar DateTime
+scalar JSON
+
+enum WorkflowInclude {
+  DRAFT
+  VERSIONS
+  LATEST_EXECUTION
+}
+
+enum WorkflowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+type Query {
+  workflow(id: ID!, include: [WorkflowInclude!] = [DRAFT]): Workflow
+  workflows(
+    workspaceId: ID!
+    first: Int = 25
+    after: String
+  ): WorkflowConnection!
+}
+
+type Mutation {
+  publishWorkflow(input: PublishWorkflowInput!): PublishWorkflowPayload!
+}
+
+input PublishWorkflowInput {
+  workflowId: ID!
+  workspaceId: ID!
+  expectedRevision: Int!
+  expectedChecksum: String!
+  idempotencyKey: String!
+}
+
+type PublishWorkflowPayload {
+  workflow: Workflow!
+  version: WorkflowVersion!
+  replayed: Boolean!
+}
+
+type Workflow {
+  id: ID!
+  workspaceId: ID!
+  name: String!
+  status: WorkflowStatus!
+  draft: WorkflowDraft
+  publishedVersion: WorkflowVersion
+  versions(first: Int = 20, after: String): WorkflowVersionConnection!
+  latestExecution: Execution
+  updatedAt: DateTime!
+}
+
+type WorkflowDraft {
+  revision: Int!
+  checksum: String!
+  graph: JSON!
+  diagnostics: [Diagnostic!]!
+  updatedAt: DateTime!
+}
+
+type WorkflowVersion {
+  id: ID!
+  version: Int!
+  checksum: String!
+  graph: JSON!
+  createdAt: DateTime!
+}
+
+type Execution {
+  id: ID!
+  status: String!
+  createdAt: DateTime!
+}
+
+type Diagnostic {
+  code: String!
+  severity: String!
+  message: String!
+  nodeId: ID
+  edgeId: ID
+}
+
+type WorkflowConnection {
+  nodes: [Workflow!]!
+  pageInfo: PageInfo!
+}
+
+type WorkflowVersionConnection {
+  nodes: [WorkflowVersion!]!
+  pageInfo: PageInfo!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}

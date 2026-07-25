@@ -74,6 +74,14 @@ export const workflowQueryInput = z.object({
     .default(["draft"]),
 });
 
+export const workflowPublishInput = z.object({
+  workflowId: z.string().cuid(),
+  workspaceId: z.string().cuid(),
+  expectedRevision: z.number().int().min(0),
+  expectedChecksum: z.string().regex(/^[a-f0-9]{64}$/),
+  idempotencyKey: z.string().trim().min(8).max(120),
+});
+
 export type WorkflowGraph = z.infer<typeof workflowGraph>;
 export type WorkflowNode = z.infer<typeof workflowNode>;
 export type WorkflowEdge = z.infer<typeof workflowEdge>;

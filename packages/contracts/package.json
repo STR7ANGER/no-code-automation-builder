@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "graphql": "16.11.0",
     "zod": "4.1.12"
   },
   "devDependencies": {
