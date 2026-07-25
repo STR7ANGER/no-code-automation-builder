@@ -75,7 +75,7 @@ class WorkflowMemory implements WorkflowRepository {
     workflowId,
     revision: 0,
     graph,
-    checksum: "checksum",
+    checksum: "a".repeat(64),
   };
   async create() {
     return {
@@ -98,6 +98,20 @@ class WorkflowMemory implements WorkflowRepository {
       checksum: input.checksum,
     };
     return this.current;
+  }
+  async query(input: Parameters<WorkflowRepository["query"]>[0]) {
+    return { id: input.workflowId, draft: this.current };
+  }
+  async publish(input: Parameters<WorkflowRepository["publish"]>[0]) {
+    if (input.expectedRevision !== this.current.revision)
+      return "REVISION_CONFLICT" as const;
+    if (input.expectedChecksum !== this.current.checksum)
+      return "CHECKSUM_MISMATCH" as const;
+    return {
+      workflow: { id: workflowId, status: "PUBLISHED" },
+      version: { id: "version-1", version: 1, checksum: this.current.checksum },
+      replayed: false,
+    };
   }
 }
 
@@ -169,5 +183,32 @@ describe("typed workflow drafts", () => {
         },
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("publishes only the reviewed revision and checksum", async () => {
+    const repository = new WorkflowMemory();
+    const service = new WorkflowService(repository, new Metrics());
+    await expect(
+      service.publish(principal, {
+        workspaceId,
+        workflowId,
+        expectedRevision: 0,
+        expectedChecksum: repository.current.checksum,
+        idempotencyKey: "publish-order-routing-1",
+      }),
+    ).resolves.toMatchObject({
+      workflow: { status: "PUBLISHED" },
+      version: { version: 1 },
+      replayed: false,
+    });
+    await expect(
+      service.publish(principal, {
+        workspaceId,
+        workflowId,
+        expectedRevision: 1,
+        expectedChecksum: repository.current.checksum,
+        idempotencyKey: "publish-order-routing-2",
+      }),
+    ).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
   });
 });

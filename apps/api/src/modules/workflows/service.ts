@@ -4,6 +4,8 @@ import {
   type WorkflowGraph,
   workflowCreateInput,
   workflowGraph,
+  workflowPublishInput,
+  workflowQueryInput,
 } from "@relay/contracts";
 import type { Metrics } from "../../metrics.js";
 import type { Principal } from "../access/service.js";
@@ -43,6 +45,28 @@ export interface WorkflowRepository {
     graph: WorkflowGraph;
     checksum: string;
   }): Promise<DraftRecord | "WORKFLOW_NOT_FOUND" | "REVISION_CONFLICT">;
+  query(input: {
+    tenantId: string;
+    workflowId: string;
+    workspaceId?: string;
+    include: ("draft" | "versions" | "latestExecution")[];
+  }): Promise<Record<string, unknown> | "WORKFLOW_NOT_FOUND">;
+  publish(input: {
+    tenantId: string;
+    actorId: string;
+    workflowId: string;
+    workspaceId: string;
+    expectedRevision: number;
+    expectedChecksum: string;
+    idempotencyKey: string;
+    requestHash: string;
+  }): Promise<
+    | Record<string, unknown>
+    | "WORKFLOW_NOT_FOUND"
+    | "REVISION_CONFLICT"
+    | "CHECKSUM_MISMATCH"
+    | "IDEMPOTENCY_CONFLICT"
+  >;
 }
 
 const checksum = (graph: WorkflowGraph) =>
@@ -150,5 +174,51 @@ export class WorkflowService {
       );
     this.metrics.increment("workflow_drafts_saved_total");
     return withDiagnostics(result);
+  }
+
+  async query(principal: Principal, untrusted: unknown) {
+    const input = workflowQueryInput.parse(untrusted);
+    const result = await this.repository.query({
+      tenantId: principal.tenantId,
+      workflowId: input.workflowId,
+      ...(input.workspaceId ? { workspaceId: input.workspaceId } : {}),
+      include: input.include,
+    });
+    if (result === "WORKFLOW_NOT_FOUND")
+      throw new DomainError("WORKFLOW_NOT_FOUND", 404, "Workflow not found.");
+    return result;
+  }
+
+  async publish(principal: Principal, untrusted: unknown) {
+    requireEditor(principal);
+    const input = workflowPublishInput.parse(untrusted);
+    const draft = await this.draft(principal, input.workflowId);
+    if (draft.diagnostics.some((entry) => entry.severity === "ERROR"))
+      throw new DomainError(
+        "GRAPH_INVALID",
+        422,
+        "Resolve graph errors first.",
+      );
+    const requestHash = createHash("sha256")
+      .update(JSON.stringify(input))
+      .digest("hex");
+    const result = await this.repository.publish({
+      tenantId: principal.tenantId,
+      actorId: principal.userId,
+      ...input,
+      requestHash,
+    });
+    const failures = {
+      WORKFLOW_NOT_FOUND: [404, "Workflow not found."],
+      REVISION_CONFLICT: [409, "The reviewed draft revision is stale."],
+      CHECKSUM_MISMATCH: [409, "The reviewed draft checksum changed."],
+      IDEMPOTENCY_CONFLICT: [409, "Idempotency key was reused differently."],
+    } as const;
+    if (typeof result === "string") {
+      const [status, message] = failures[result];
+      throw new DomainError(result, status, message);
+    }
+    this.metrics.increment("workflow_versions_published_total");
+    return result;
   }
 }

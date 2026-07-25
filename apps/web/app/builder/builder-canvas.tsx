@@ -24,6 +24,7 @@ function Canvas() {
   const [workspaceId, setWorkspaceId] = useState("");
   const [workflowId, setWorkflowId] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [checksum, setChecksum] = useState("");
   const [status, setStatus] = useState("Create or load a workflow.");
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([]);
   const nodeTypes = useMemo(() => ({ workflow: WorkflowNode }), []);
@@ -44,6 +45,7 @@ function Canvas() {
       draft?: {
         graph: WorkflowGraph;
         revision: number;
+        checksum: string;
         diagnostics: Diagnostic[];
       };
       error?: { code?: string };
@@ -52,6 +54,7 @@ function Canvas() {
       return setStatus(`Create rejected: ${result.error?.code ?? "UNKNOWN"}`);
     setWorkflowId(result.id ?? "");
     builder.load(result.draft.graph, result.draft.revision);
+    setChecksum(result.draft.checksum);
     setDiagnostics(result.draft.diagnostics);
     setStatus("Draft created. Canvas autosave is active.");
   }
@@ -63,12 +66,19 @@ function Canvas() {
     const result = (await response.json()) as {
       graph?: WorkflowGraph;
       revision?: number;
+      checksum?: string;
       diagnostics?: Diagnostic[];
       error?: { code?: string };
     };
-    if (!response.ok || !result.graph || result.revision === undefined)
+    if (
+      !response.ok ||
+      !result.graph ||
+      result.revision === undefined ||
+      !result.checksum
+    )
       return setStatus(`Load rejected: ${result.error?.code ?? "UNKNOWN"}`);
     builder.load(result.graph, result.revision);
+    setChecksum(result.checksum);
     setDiagnostics(result.diagnostics ?? []);
     setStatus(`Draft revision ${result.revision} loaded.`);
   }
@@ -91,10 +101,11 @@ function Canvas() {
       });
       const result = (await response.json()) as {
         revision?: number;
+        checksum?: string;
         diagnostics?: Diagnostic[];
         error?: { code?: string };
       };
-      if (!response.ok || result.revision === undefined) {
+      if (!response.ok || result.revision === undefined || !result.checksum) {
         setStatus(
           result.error?.code === "REVISION_CONFLICT"
             ? "Draft changed elsewhere. Reload required."
@@ -103,6 +114,7 @@ function Canvas() {
         return;
       }
       builder.saved(result.revision);
+      setChecksum(result.checksum);
       setDiagnostics(result.diagnostics ?? []);
       setStatus(`Revision ${result.revision} saved.`);
     }, 700);
@@ -115,6 +127,44 @@ function Canvas() {
     workflowId,
     workspaceId,
   ]);
+
+  async function publishWorkflow() {
+    if (builder.dirty) return setStatus("Wait for autosave before publishing.");
+    if (!window.confirm(`Publish revision ${builder.revision}?`)) return;
+    setStatus("Publishing reviewed revision…");
+    const response = await fetch(`${api}/v1/graphql`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        query:
+          "mutation Publish($input: PublishWorkflowInput!) { publishWorkflow(input: $input) { replayed version { version checksum } workflow { status } } }",
+        variables: {
+          input: {
+            workspaceId,
+            workflowId,
+            expectedRevision: builder.revision,
+            expectedChecksum: checksum,
+            idempotencyKey: crypto.randomUUID(),
+          },
+        },
+      }),
+    });
+    const result = (await response.json()) as {
+      data?: { publishWorkflow?: { version?: { version: number } } };
+      errors?: { message: string; extensions?: { code?: string } }[];
+    };
+    const error = result.errors?.[0];
+    if (!response.ok || error)
+      return setStatus(
+        `Publish rejected: ${error?.extensions?.code ?? error?.message ?? "UNKNOWN"}`,
+      );
+    setStatus(
+      `Version ${result.data?.publishWorkflow?.version?.version ?? "?"} published.`,
+    );
+  }
 
   return (
     <section className="form" style={{ padding: "2rem 0 5rem" }}>
@@ -175,6 +225,19 @@ function Canvas() {
           disabled={builder.history.length === 0}
         >
           Undo
+        </button>
+        <button
+          type="button"
+          onClick={publishWorkflow}
+          disabled={
+            builder.dirty ||
+            !checksum ||
+            !workflowId ||
+            !workspaceId ||
+            diagnostics.some((entry) => entry.severity === "ERROR")
+          }
+        >
+          Publish
         </button>
         <span className="status">
           {diagnostics.length === 0

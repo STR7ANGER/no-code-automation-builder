@@ -132,6 +132,7 @@ model Workflow {
   versions           WorkflowVersion[] @relation("WorkflowVersions")
   publishedVersion   WorkflowVersion?  @relation("PublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
   executions         Execution[]
+  publishRequests    PublishRequest[]
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
@@ -158,10 +159,24 @@ model WorkflowVersion {
   workflow   Workflow    @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
   published  Workflow?   @relation("PublishedVersion")
   executions Execution[]
+  publishRequests PublishRequest[]
   createdAt  DateTime    @default(now())
 
   @@unique([workflowId, version])
   @@unique([workflowId, checksum])
+}
+
+model PublishRequest {
+  id             String          @id @default(cuid())
+  workflowId     String
+  versionId      String
+  idempotencyKey String
+  requestHash    String
+  workflow       Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version        WorkflowVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  createdAt      DateTime        @default(now())
+
+  @@unique([workflowId, idempotencyKey])
 }
 
 model Execution {

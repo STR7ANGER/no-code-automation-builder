@@ -66,7 +66,7 @@ export const draftSaveInput = z.object({
 });
 
 export const workflowQueryInput = z.object({
-  workspaceId: z.string().cuid(),
+  workspaceId: z.string().cuid().optional(),
   workflowId: z.string().cuid(),
   include: z
     .array(z.enum(["draft", "versions", "latestExecution"]))

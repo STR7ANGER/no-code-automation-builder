@@ -112,4 +112,120 @@ export class PrismaWorkflowRepository implements WorkflowRepository {
       return draftRecord(draft);
     });
   }
+
+  async query(input: Parameters<WorkflowRepository["query"]>[0]) {
+    const workflow = await prisma.workflow.findFirst({
+      where: {
+        id: input.workflowId,
+        ...(input.workspaceId ? { workspaceId: input.workspaceId } : {}),
+        workspace: { tenantId: input.tenantId },
+      },
+      include: {
+        draft: input.include.includes("draft"),
+        versions: input.include.includes("versions")
+          ? { orderBy: { version: "desc" }, take: 20 }
+          : false,
+        executions: input.include.includes("latestExecution")
+          ? { orderBy: { createdAt: "desc" }, take: 1 }
+          : false,
+        publishedVersion: true,
+      },
+    });
+    if (!workflow) return "WORKFLOW_NOT_FOUND" as const;
+    const versions = workflow.versions ?? [];
+    return {
+      ...workflow,
+      draft: workflow.draft
+        ? { ...draftRecord(workflow.draft), diagnostics: [] }
+        : null,
+      versions: {
+        nodes: versions,
+        pageInfo: { endCursor: null, hasNextPage: false },
+      },
+      latestExecution: workflow.executions?.[0] ?? null,
+    };
+  }
+
+  async publish(input: Parameters<WorkflowRepository["publish"]>[0]) {
+    return prisma.$transaction(
+      async (transaction) => {
+        const existing = await transaction.publishRequest.findUnique({
+          where: {
+            workflowId_idempotencyKey: {
+              workflowId: input.workflowId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+          include: { version: true, workflow: true },
+        });
+        if (existing)
+          return existing.requestHash === input.requestHash
+            ? {
+                workflow: existing.workflow,
+                version: existing.version,
+                replayed: true,
+              }
+            : ("IDEMPOTENCY_CONFLICT" as const);
+        const workflow = await transaction.workflow.findFirst({
+          where: {
+            id: input.workflowId,
+            workspaceId: input.workspaceId,
+            workspace: { tenantId: input.tenantId },
+          },
+          include: { draft: true },
+        });
+        if (!workflow?.draft) return "WORKFLOW_NOT_FOUND" as const;
+        if (workflow.draft.revision !== input.expectedRevision)
+          return "REVISION_CONFLICT" as const;
+        if (workflow.draft.checksum !== input.expectedChecksum)
+          return "CHECKSUM_MISMATCH" as const;
+        let version = await transaction.workflowVersion.findUnique({
+          where: {
+            workflowId_checksum: {
+              workflowId: workflow.id,
+              checksum: workflow.draft.checksum,
+            },
+          },
+        });
+        if (!version) {
+          const latest = await transaction.workflowVersion.aggregate({
+            where: { workflowId: workflow.id },
+            _max: { version: true },
+          });
+          version = await transaction.workflowVersion.create({
+            data: {
+              workflowId: workflow.id,
+              version: (latest._max.version ?? 0) + 1,
+              graph: workflow.draft.graph as Prisma.InputJsonValue,
+              checksum: workflow.draft.checksum,
+            },
+          });
+        }
+        const updated = await transaction.workflow.update({
+          where: { id: workflow.id },
+          data: { status: "PUBLISHED", publishedVersionId: version.id },
+        });
+        await transaction.publishRequest.create({
+          data: {
+            workflowId: workflow.id,
+            versionId: version.id,
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+          },
+        });
+        await transaction.auditEvent.create({
+          data: {
+            tenantId: input.tenantId,
+            actorId: input.actorId,
+            action: "workflow.published",
+            target: "WorkflowVersion",
+            targetId: version.id,
+            metadata: { workflowId: workflow.id, version: version.version },
+          },
+        });
+        return { workflow: updated, version, replayed: false };
+      },
+      { isolationLevel: "Serializable" },
+    );
+  }
 }

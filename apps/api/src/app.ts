@@ -4,6 +4,7 @@ import { requestId } from "hono/request-id";
 import type { Metrics } from "./metrics.js";
 import { createAccessRoutes } from "./modules/access/routes.js";
 import type { AccessService } from "./modules/access/service.js";
+import { createGraphqlRoutes } from "./modules/workflows/graphql.js";
 import { createWorkflowRoutes } from "./modules/workflows/routes.js";
 import type { WorkflowService } from "./modules/workflows/service.js";
 
@@ -64,6 +65,11 @@ export const createApp = (
     app.route(
       "/v1/workflows",
       createWorkflowRoutes(options.workflows, options.access),
+    );
+  if (options.access && options.workflows)
+    app.route(
+      "/v1/graphql",
+      createGraphqlRoutes(options.workflows, options.access),
     );
   return app;
 };
