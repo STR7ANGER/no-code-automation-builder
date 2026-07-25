@@ -2,12 +2,24 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
 import { parseEnvironment } from "./env.js";
 import { Metrics } from "./metrics.js";
+import { AesCredentialCipher } from "./modules/access/cipher.js";
+import { PrismaAccessRepository } from "./modules/access/prisma-repository.js";
+import { AccessService } from "./modules/access/service.js";
 
 const environment = parseEnvironment(process.env);
+const metrics = new Metrics();
+const access = new AccessService(
+  new PrismaAccessRepository(),
+  new AesCredentialCipher(environment.CREDENTIAL_ENCRYPTION_KEY),
+  environment.SESSION_PEPPER,
+  metrics,
+);
 const server = serve({
   fetch: createApp({
-    metrics: new Metrics(),
+    metrics,
     operatorToken: environment.OPERATOR_METRICS_TOKEN,
+    access,
+    bootstrapKey: environment.BOOTSTRAP_ADMIN_KEY,
   }).fetch,
   port: environment.PORT,
 });

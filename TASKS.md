@@ -7,9 +7,9 @@ Complete tasks in order unless a dependency is explicitly removed. Each day has 
 - [x] 1. Design workspace, Docker, CI, workflow model, and execution semantics; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 - [x] 2. Implement workspace, Docker, CI, workflow model, and execution semantics; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
 - [x] 3. Verify workspace, Docker, CI, workflow model, and execution semantics with tests, failure cases, telemetry, documentation, and a reviewable demo.
-- [ ] 4. Design auth, workspaces, RBAC, credential encryption, and audit logs; write acceptance criteria, contracts, risks, and the smallest vertical slice.
-- [ ] 5. Implement auth, workspaces, RBAC, credential encryption, and audit logs; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
-- [ ] 6. Verify auth, workspaces, RBAC, credential encryption, and audit logs with tests, failure cases, telemetry, documentation, and a reviewable demo.
+- [x] 4. Design auth, workspaces, RBAC, credential encryption, and audit logs; write acceptance criteria, contracts, risks, and the smallest vertical slice.
+- [x] 5. Implement auth, workspaces, RBAC, credential encryption, and audit logs; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
+- [x] 6. Verify auth, workspaces, RBAC, credential encryption, and audit logs with tests, failure cases, telemetry, documentation, and a reviewable demo.
 - [ ] 7. Design visual canvas, typed nodes/edges, validation, autosave, and undo; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 - [ ] 8. Implement visual canvas, typed nodes/edges, validation, autosave, and undo; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
 - [ ] 9. Verify visual canvas, typed nodes/edges, validation, autosave, and undo with tests, failure cases, telemetry, documentation, and a reviewable demo.

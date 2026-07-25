@@ -2,9 +2,16 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import type { Metrics } from "./metrics.js";
+import { createAccessRoutes } from "./modules/access/routes.js";
+import type { AccessService } from "./modules/access/service.js";
 
 export const createApp = (
-  options: { metrics?: Metrics; operatorToken?: string } = {},
+  options: {
+    metrics?: Metrics;
+    operatorToken?: string;
+    access?: AccessService;
+    bootstrapKey?: string;
+  } = {},
 ) => {
   const app = new Hono();
   app.use("*", requestId());
@@ -48,5 +55,7 @@ export const createApp = (
       context.header("content-type", "text/plain; version=0.0.4");
       return context.body(options.metrics?.render() ?? "");
     });
+  if (options.access && options.bootstrapKey)
+    app.route("/v1", createAccessRoutes(options.access, options.bootstrapKey));
   return app;
 };
