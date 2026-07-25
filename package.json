@@ -16,7 +16,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "pretest": "npm run build --workspace @relay/contracts",
     "test": "npm run test --workspaces --if-present",
-    "check": "npm run lint && npm run typecheck && npm test",
+    "orchestrator:test": "cd services/orchestrator && go test ./...",
+    "check": "npm run lint && npm run typecheck && npm test && npm run orchestrator:test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev"
   },
