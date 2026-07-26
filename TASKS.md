@@ -30,10 +30,10 @@ Complete tasks in order unless a dependency is explicitly removed. Each day has 
 
 ## Day 3 — Advanced behavior and production hardening (Tasks 21–30)
 
-- [ ] 21. Verify connector SDK plus HTTP, email, GitHub-style, and Slack-style demo connectors with tests, failure cases, telemetry, documentation, and a reviewable demo.
-- [ ] 22. Design live execution trace, logs, replay, debugging, and payload redaction; write acceptance criteria, contracts, risks, and the smallest vertical slice.
-- [ ] 23. Implement live execution trace, logs, replay, debugging, and payload redaction; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
-- [ ] 24. Verify live execution trace, logs, replay, debugging, and payload redaction with tests, failure cases, telemetry, documentation, and a reviewable demo.
+- [x] 21. Verify connector SDK plus HTTP, email, GitHub-style, and Slack-style demo connectors with tests, failure cases, telemetry, documentation, and a reviewable demo.
+- [x] 22. Design live execution trace, logs, replay, debugging, and payload redaction; write acceptance criteria, contracts, risks, and the smallest vertical slice.
+- [x] 23. Implement live execution trace, logs, replay, debugging, and payload redaction; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
+- [x] 24. Verify live execution trace, logs, replay, debugging, and payload redaction with tests, failure cases, telemetry, documentation, and a reviewable demo.
 - [ ] 25. Design approvals, templates, subflows, quotas, analytics, and observability; write acceptance criteria, contracts, risks, and the smallest vertical slice.
 - [ ] 26. Implement approvals, templates, subflows, quotas, analytics, and observability; keep frontend, API, domain logic, workers, and persistence in their declared boundaries.
 - [ ] 27. Verify approvals, templates, subflows, quotas, analytics, and observability with tests, failure cases, telemetry, documentation, and a reviewable demo.

@@ -54,8 +54,17 @@ model Tenant {
   auditEvents AuditEvent[]
   executions  Execution[]
   triggers    Trigger[]
+  quota       TenantQuota?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model TenantQuota {
+  id                  String   @id @default(cuid())
+  tenantId            String   @unique
+  maxExecutionsPerDay Int      @default(10000)
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  updatedAt           DateTime @updatedAt
 }
 
 model Workspace {
@@ -188,24 +197,44 @@ model PublishRequest {
 }
 
 model Execution {
-  id                String          @id @default(cuid())
+  id                String           @id @default(cuid())
   tenantId          String
   workflowId        String
   workflowVersionId String
   idempotencyKey    String
-  status            ExecutionStatus @default(QUEUED)
+  status            ExecutionStatus  @default(QUEUED)
   payloadDocumentId String
-  availableAt       DateTime        @default(now())
-  attempts          Int             @default(0)
-  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  workflow          Workflow        @relation(fields: [workflowId], references: [id], onDelete: Restrict)
-  workflowVersion   WorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
+  availableAt       DateTime         @default(now())
+  attempts          Int              @default(0)
+  replayOfId        String?
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workflow          Workflow         @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  workflowVersion   WorkflowVersion  @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
   steps             StepRun[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  events            ExecutionEvent[]
+  replayOf          Execution?       @relation("ExecutionReplays", fields: [replayOfId], references: [id], onDelete: SetNull)
+  replays           Execution[]      @relation("ExecutionReplays")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@unique([workflowId, idempotencyKey])
   @@index([tenantId, status, availableAt])
+  @@index([replayOfId])
+}
+
+model ExecutionEvent {
+  id          String    @id @default(cuid())
+  executionId String
+  sequence    Int
+  type        String
+  severity    String
+  nodeId      String?
+  fields      Json
+  execution   Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([executionId, sequence])
+  @@index([executionId, createdAt])
 }
 
 model StepRun {
