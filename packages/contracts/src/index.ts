@@ -29,6 +29,7 @@ export const workflowNodeKind = z.enum([
   "ACTION",
   "CONDITION",
   "LOOP",
+  "SUBFLOW",
 ]);
 
 export const workflowNode = z.object({
@@ -93,6 +94,27 @@ export const triggerCreateInput = z
     message: "Cron triggers require a schedule.",
     path: ["schedule"],
   });
+
+export const approvalRequestInput = z.object({
+  executionId: z.string().cuid(),
+  nodeId: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
+});
+
+export const approvalDecisionInput = z.object({ approved: z.boolean() });
+
+export const templateCreateInput = z.object({
+  name: z.string().trim().min(2).max(120),
+  graph: workflowGraph,
+});
+
+export const templateInstantiateInput = z.object({
+  workspaceId: z.string().cuid(),
+  name: z.string().trim().min(2).max(120),
+});
+
+export const quotaInput = z.object({
+  maxExecutionsPerDay: z.number().int().min(1).max(1_000_000),
+});
 
 export type WorkflowGraph = z.infer<typeof workflowGraph>;
 export type WorkflowNode = z.infer<typeof workflowNode>;

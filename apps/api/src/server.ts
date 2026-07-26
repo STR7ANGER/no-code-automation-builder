@@ -5,6 +5,8 @@ import { Metrics } from "./metrics.js";
 import { AesCredentialCipher } from "./modules/access/cipher.js";
 import { PrismaAccessRepository } from "./modules/access/prisma-repository.js";
 import { AccessService } from "./modules/access/service.js";
+import { PrismaControlRepository } from "./modules/control/prisma-repository.js";
+import { ControlService } from "./modules/control/service.js";
 import { PrismaExecutionRepository } from "./modules/executions/prisma-repository.js";
 import { ExecutionService } from "./modules/executions/service.js";
 import { PrismaTriggerRepository } from "./modules/triggers/prisma-repository.js";
@@ -30,6 +32,7 @@ const executions = new ExecutionService(
   new PrismaExecutionRepository(),
   metrics,
 );
+const control = new ControlService(new PrismaControlRepository(), metrics);
 const server = serve({
   fetch: createApp({
     metrics,
@@ -39,6 +42,7 @@ const server = serve({
     workflows,
     triggers,
     executions,
+    control,
   }).fetch,
   port: environment.PORT,
 });

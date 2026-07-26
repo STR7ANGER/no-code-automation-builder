@@ -73,6 +73,19 @@ export class PrismaTriggerRepository implements TriggerRepository {
     try {
       return await prisma.$transaction(
         async (tx) => {
+          const quota = await tx.tenantQuota.findUnique({
+            where: { tenantId: input.trigger.tenantId },
+          });
+          if (quota) {
+            const used = await tx.execution.count({
+              where: {
+                tenantId: input.trigger.tenantId,
+                createdAt: { gte: new Date(Date.now() - 86_400_000) },
+              },
+            });
+            if (used >= quota.maxExecutionsPerDay)
+              return "UNPUBLISHED" as const;
+          }
           const workflow = await tx.workflow.findUnique({
             where: { id: input.trigger.workflowId },
             select: { publishedVersionId: true },

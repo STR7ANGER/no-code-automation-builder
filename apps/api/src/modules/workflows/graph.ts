@@ -35,6 +35,17 @@ export const validateGraph = (graph: WorkflowGraph): Diagnostic[] => {
           nodeId: node.id,
         });
     }
+    if (
+      node.kind === "SUBFLOW" &&
+      (typeof node.config.workflowId !== "string" ||
+        node.config.workflowId.length < 10)
+    )
+      diagnostics.push({
+        code: "SUBFLOW_TARGET_REQUIRED",
+        severity: "ERROR",
+        message: "Subflows require a target workflowId.",
+        nodeId: node.id,
+      });
   }
   const triggers = graph.nodes.filter((node) => node.kind === "TRIGGER");
   if (triggers.length !== 1)

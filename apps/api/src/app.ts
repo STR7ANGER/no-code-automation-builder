@@ -4,6 +4,8 @@ import { requestId } from "hono/request-id";
 import type { Metrics } from "./metrics.js";
 import { createAccessRoutes } from "./modules/access/routes.js";
 import type { AccessService } from "./modules/access/service.js";
+import { createControlRoutes } from "./modules/control/routes.js";
+import type { ControlService } from "./modules/control/service.js";
 import { createExecutionRoutes } from "./modules/executions/routes.js";
 import type { ExecutionService } from "./modules/executions/service.js";
 import { createTriggerRoutes } from "./modules/triggers/routes.js";
@@ -21,6 +23,7 @@ export const createApp = (
     workflows?: WorkflowService;
     triggers?: TriggerService;
     executions?: ExecutionService;
+    control?: ControlService;
   } = {},
 ) => {
   const app = new Hono();
@@ -78,6 +81,11 @@ export const createApp = (
     app.route(
       "/v1/executions",
       createExecutionRoutes(options.executions, options.access),
+    );
+  if (options.access && options.control)
+    app.route(
+      "/v1/control",
+      createControlRoutes(options.control, options.access),
     );
   if (options.access && options.workflows)
     app.route(
