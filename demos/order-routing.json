@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "id": "order-webhook",
+      "kind": "TRIGGER",
+      "label": "Order webhook",
+      "position": { "x": 0, "y": 0 },
+      "config": {}
+    },
+    {
+      "id": "high-value",
+      "kind": "CONDITION",
+      "label": "High value?",
+      "position": { "x": 220, "y": 0 },
+      "config": {}
+    },
+    {
+      "id": "approval",
+      "kind": "ACTION",
+      "label": "Request approval",
+      "position": { "x": 440, "y": -90 },
+      "config": { "connector": "approval" }
+    },
+    {
+      "id": "receipt",
+      "kind": "ACTION",
+      "label": "Send receipt",
+      "position": { "x": 440, "y": 90 },
+      "config": { "connector": "email" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "order-high-value",
+      "source": "order-webhook",
+      "target": "high-value",
+      "branch": "DEFAULT"
+    },
+    {
+      "id": "high-value-approval",
+      "source": "high-value",
+      "target": "approval",
+      "branch": "TRUE"
+    },
+    {
+      "id": "high-value-receipt",
+      "source": "high-value",
+      "target": "receipt",
+      "branch": "FALSE"
+    }
+  ]
+}

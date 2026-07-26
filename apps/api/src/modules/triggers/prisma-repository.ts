@@ -84,7 +84,7 @@ export class PrismaTriggerRepository implements TriggerRepository {
               },
             });
             if (used >= quota.maxExecutionsPerDay)
-              return "UNPUBLISHED" as const;
+              return "QUOTA_EXCEEDED" as const;
           }
           const workflow = await tx.workflow.findUnique({
             where: { id: input.trigger.workflowId },

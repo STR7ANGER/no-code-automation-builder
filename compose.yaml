@@ -39,6 +39,39 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+  api:
+    profiles: ["application"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://automation:automation@postgres:5432/automation?schema=public
+      MONGODB_URL: mongodb://automation:automation@mongodb:27017/executions?authSource=admin
+      REDIS_URL: redis://redis:6379
+    ports: ["3010:3010"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  orchestrator:
+    profiles: ["application"]
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    ports: ["3020:3020"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  web:
+    profiles: ["application"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3010
+    ports: ["3000:3000"]
+    depends_on: [api]
 volumes:
   automation-postgres:
   automation-mongo:

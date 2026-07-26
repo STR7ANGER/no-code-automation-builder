@@ -1,9 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
+import { secureHeaders } from "hono/secure-headers";
+import { ZodError } from "zod";
 import type { Metrics } from "./metrics.js";
 import { createAccessRoutes } from "./modules/access/routes.js";
 import type { AccessService } from "./modules/access/service.js";
+import { DomainError } from "./modules/access/service.js";
 import { createControlRoutes } from "./modules/control/routes.js";
 import type { ControlService } from "./modules/control/service.js";
 import { createExecutionRoutes } from "./modules/executions/routes.js";
@@ -27,7 +30,22 @@ export const createApp = (
   } = {},
 ) => {
   const app = new Hono();
+  app.onError((error, context) => {
+    if (error instanceof DomainError)
+      return context.json(
+        { error: { code: error.code, message: error.message } },
+        error.status,
+      );
+    if (error instanceof ZodError)
+      return context.json(
+        { error: { code: "VALIDATION_FAILED", message: "Invalid request." } },
+        422,
+      );
+    console.error(JSON.stringify({ level: "error", event: "http.unhandled" }));
+    return context.json({ error: { code: "INTERNAL_ERROR" } }, 500);
+  });
   app.use("*", requestId());
+  app.use("*", secureHeaders());
   app.use(
     "*",
     cors({ origin: process.env.WEB_URL ?? "http://localhost:3000" }),

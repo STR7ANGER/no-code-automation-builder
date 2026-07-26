@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run db:generate
       - run: npm run check
+      - run: cd services/orchestrator && go vet ./...
       - run: npm run build
       - run: docker compose config --quiet
       - run: npm audit --audit-level=high

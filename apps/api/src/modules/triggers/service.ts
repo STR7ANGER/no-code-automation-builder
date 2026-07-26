@@ -30,7 +30,9 @@ export interface TriggerRepository {
     payloadHash: string;
     payload: Uint8Array;
     occurredAt: Date;
-  }): Promise<{ executionId: string } | "DUPLICATE" | "UNPUBLISHED">;
+  }): Promise<
+    { executionId: string } | "DUPLICATE" | "UNPUBLISHED" | "QUOTA_EXCEEDED"
+  >;
   deadLetter(input: {
     triggerId: string;
     deliveryId: string;
@@ -158,7 +160,7 @@ export class TriggerService {
       payload,
       occurredAt: now,
     });
-    if (result === "UNPUBLISHED") {
+    if (result === "UNPUBLISHED" || result === "QUOTA_EXCEEDED") {
       await this.repository.deadLetter({
         triggerId,
         deliveryId,
@@ -167,8 +169,10 @@ export class TriggerService {
       });
       throw new DomainError(
         result,
-        409,
-        "Trigger has no published workflow version.",
+        result === "UNPUBLISHED" ? 409 : 422,
+        result === "UNPUBLISHED"
+          ? "Trigger has no published workflow version."
+          : "Daily execution quota exceeded.",
       );
     }
     this.metrics.increment("trigger_deliveries_total", {

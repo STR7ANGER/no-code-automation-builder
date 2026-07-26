@@ -1,0 +1,39 @@
+{
+  "nodes": [
+    {
+      "id": "alert-webhook",
+      "kind": "TRIGGER",
+      "label": "Alert webhook",
+      "position": { "x": 0, "y": 0 },
+      "config": {}
+    },
+    {
+      "id": "create-issue",
+      "kind": "ACTION",
+      "label": "Create GitHub issue",
+      "position": { "x": 220, "y": 0 },
+      "config": { "connector": "github" }
+    },
+    {
+      "id": "notify-slack",
+      "kind": "ACTION",
+      "label": "Notify Slack",
+      "position": { "x": 440, "y": 0 },
+      "config": { "connector": "slack" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "alert-create-issue",
+      "source": "alert-webhook",
+      "target": "create-issue",
+      "branch": "DEFAULT"
+    },
+    {
+      "id": "issue-notify-slack",
+      "source": "create-issue",
+      "target": "notify-slack",
+      "branch": "DEFAULT"
+    }
+  ]
+}

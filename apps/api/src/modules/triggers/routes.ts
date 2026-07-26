@@ -16,19 +16,26 @@ export const createTriggerRoutes = (
       )
       .then((value) => context.json(value, 201)),
   );
-  routes.post("/hooks/:id", async (context) =>
-    service
-      .ingest(
+  routes.post("/hooks/:id", async (context) => {
+    const declared = Number(context.req.header("content-length") ?? 0);
+    if (declared > 1_048_576)
+      return context.json({ error: { code: "PAYLOAD_TOO_LARGE" } }, 413);
+    const payload = new Uint8Array(await context.req.arrayBuffer());
+    if (payload.byteLength > 1_048_576)
+      return context.json({ error: { code: "PAYLOAD_TOO_LARGE" } }, 413);
+    return context.json(
+      await service.ingest(
         context.req.param("id"),
         {
           "x-relay-delivery": context.req.header("x-relay-delivery"),
           "x-relay-timestamp": context.req.header("x-relay-timestamp"),
           "x-relay-signature": context.req.header("x-relay-signature"),
         },
-        new Uint8Array(await context.req.arrayBuffer()),
-      )
-      .then((value) => context.json(value, 202)),
-  );
+        payload,
+      ),
+      202,
+    );
+  });
   routes.post("/triggers/dispatch-due", async (context) => {
     const principal = await access.authenticate(
       context.req.header("authorization"),
